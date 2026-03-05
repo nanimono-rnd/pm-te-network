@@ -54,13 +54,7 @@ end
 # ── Step 3: Generate rolling windows ───────────────────────────────────────────
 println("\n[3/5] Generating rolling windows...")
 # Adjust window size for limited data (CLOB API only returns ~1 month)
-config = RollingWindow.WindowConfig(
-    window_days = 20,      # Reduced from 60
-    step_days = 1,
-    min_active_days = 10,  # Reduced from 40
-    max_missing_rate = 0.3,
-    stale_threshold_bars = 12
-)
+config = RollingWindow.WindowConfig(20, 1, 10, 0.3, 12)
 start_date = Date(2026, 2, 5)
 end_date = Date(2026, 3, 5)
 windows = RollingWindow.generate_windows(start_date, end_date, config)
