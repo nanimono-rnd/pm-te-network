@@ -54,12 +54,14 @@ end
 # ── Step 3: Generate rolling windows ───────────────────────────────────────────
 println("\n[3/5] Generating rolling windows...")
 config = RollingWindow.WindowConfig()
-start_date = Date(2024, 6, 1)
+# Use recent date range where we have data (CLOB API only returns ~1 month)
+start_date = Date(2026, 2, 5)
 end_date = Date(2026, 3, 5)
 windows = RollingWindow.generate_windows(start_date, end_date, config)
 println("  Total windows: $(length(windows))")
 println("  Window size: $(config.window_days) days")
 println("  Step size: $(config.step_days) day")
+println("  Date range: $start_date to $end_date")
 
 # ── Step 4: Estimate TE network for each window ────────────────────────────────
 println("\n[4/5] Estimating TE networks for rolling windows...")
