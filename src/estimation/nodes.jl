@@ -19,14 +19,22 @@ using .PolymarketAPI
 # ── keyword filter ─────────────────────────────────────────────────────────────
 
 const MACRO_KEYWORDS = [
-    "fed", "federal reserve", "interest rate", "rate cut", "rate hike", "fomc",
-    "inflation", "cpi", "pce",
-    "recession", "gdp", "unemployment", "jobs",
-    "treasury", "yield", "10-year",
-    "s&p", "spx", "nasdaq", "dow",
-    "dollar", "usd", "dxy",
-    "oil", "wti", "brent",
-    "china", "tariff", "trade war",
+    # Fed / interest rates — must pair with "rate" or "fed" to avoid false positives
+    "federal reserve", "fomc", "fed rate", "fed cut", "fed hike", "fed raise",
+    "interest rate", "rate cut", "rate hike", "rate pause", "basis point", "bps",
+    # Inflation / macro data
+    "inflation", "cpi", "pce", "core inflation",
+    "gdp", "recession", "unemployment rate", "nonfarm payroll", "jobs report",
+    # Treasury / yields
+    "10-year yield", "treasury yield", "yield curve",
+    # Equity indices
+    "s&p 500", "spx", "nasdaq", "dow jones",
+    # Currency / dollar
+    "dxy", "dollar index",
+    # Commodities used as macro signals
+    "wti", "brent crude",
+    # Trade / tariffs (macro scope)
+    "tariff", "trade war", "trade deal",
 ]
 
 function is_macro_contract(question::String)
@@ -95,7 +103,7 @@ function align_to_grid(series_dict::Dict)
     end
 
     # Drop columns (time steps) where ANY node is still NaN
-    valid_cols = [all(!isnan(L[:, j])) for j in 1:T]
+    valid_cols = [all(x -> !isnan(x), L[:, j]) for j in 1:T]
     L = L[:, valid_cols]
     grid = all_ts[valid_cols]
 
