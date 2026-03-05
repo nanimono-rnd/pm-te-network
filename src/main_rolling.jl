@@ -90,23 +90,6 @@ for (idx, window) in enumerate(windows[1:n_windows])
         end
     end
     
-    # Debug: show top 3 contracts by active days
-    if idx == 1 && length(active_contracts) == 0
-        println("  Debug: Top contracts by active days in window 1:")
-        counts = []
-        for (token_id, df) in price_data
-            active_days = count(row -> begin
-                date = Date(unix2datetime(row.t))
-                window_start <= date <= window_end && !isnan(row.p) && row.p > 0
-            end, eachrow(df))
-            push!(counts, (token_id[1:20], active_days))
-        end
-        sort!(counts, by=x->-x[2])
-        for (i, (tid, days)) in enumerate(counts[1:min(5, length(counts))])
-            println("    [$i] $tid... → $days days (need $(config.min_active_days))")
-        end
-    end
-    
     if length(active_contracts) < 5
         println("  Window $idx: skipped (only $(length(active_contracts)) contracts)")
         continue
