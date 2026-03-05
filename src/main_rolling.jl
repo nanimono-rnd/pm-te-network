@@ -54,7 +54,7 @@ end
 # ── Step 3: Generate rolling windows ───────────────────────────────────────────
 println("\n[3/5] Generating rolling windows...")
 # Adjust window size for limited data (CLOB API only returns ~1 month)
-config = RollingWindow.WindowConfig(20, 1, 10, 0.3, 12)
+config = RollingWindow.WindowConfig(20, 1, 5, 0.3, 12)  # min_active_days = 5
 start_date = Date(2026, 2, 5)
 end_date = Date(2026, 3, 5)
 windows = RollingWindow.generate_windows(start_date, end_date, config)
@@ -87,6 +87,23 @@ for (idx, window) in enumerate(windows[1:n_windows])
         
         if active_days >= config.min_active_days
             push!(active_contracts, token_id)
+        end
+    end
+    
+    # Debug: show top 3 contracts by active days
+    if idx == 1 && length(active_contracts) == 0
+        println("  Debug: Top contracts by active days in window 1:")
+        counts = []
+        for (token_id, df) in price_data
+            active_days = count(row -> begin
+                date = Date(unix2datetime(row.t))
+                window_start <= date <= window_end && !isnan(row.p) && row.p > 0
+            end, eachrow(df))
+            push!(counts, (token_id[1:20], active_days))
+        end
+        sort!(counts, by=x->-x[2])
+        for (i, (tid, days)) in enumerate(counts[1:min(5, length(counts))])
+            println("    [$i] $tid... → $days days (need $(config.min_active_days))")
         end
     end
     
