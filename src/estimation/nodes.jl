@@ -192,6 +192,13 @@ function build_node_matrix(; min_volume=0.0, fidelity=1440)
     println("\nBuilding N×T matrix...")
     L, node_ids, grid = align_to_grid(series_dict_collapsed)
 
+    # Filter nodes with insufficient non-zero data
+    min_valid_obs = max(30, Int(floor(length(grid) * 0.2)))  # At least 30 days or 20% of window
+    valid_mask = [count(x -> x != 0.0, L[i, :]) >= min_valid_obs for i in 1:size(L, 1)]
+    L = L[valid_mask, :]
+    node_ids = node_ids[valid_mask]
+    println("  Filtered out $(sum(.!valid_mask)) nodes with <$min_valid_obs valid observations")
+
     # Match metadata to matrix order
     metadata = filter(r -> r.token_id in node_ids, collapsed)
 
