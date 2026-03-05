@@ -13,7 +13,7 @@ Steps:
 module NodeConstruction
 
 using DataFrames, Dates, Statistics
-include(joinpath(@__DIR__, "polymarket.jl"))
+include(joinpath(@__DIR__, "..", "data", "polymarket.jl"))
 using .PolymarketAPI
 
 # ── keyword filter ─────────────────────────────────────────────────────────────
