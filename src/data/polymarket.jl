@@ -95,12 +95,12 @@ Fetch OHLC price history for a single market token.
 
 Args:
   token_id  : the token's ID string (from market's `tokens` field)
-  interval  : time range — "1d", "1w", "1m", "3m", "6m", "1y", "all"
+  interval  : time range — "1d", "1w", "1m", "3m", "6m", "1y", "max"
   fidelity  : candle width in minutes (60 = hourly, 1440 = daily)
 
-Returns DataFrame with columns: t (Unix timestamp), o, h, l, c (prices in [0,1])
+Returns DataFrame with columns: t (Unix timestamp), p (price in [0,1])
 """
-function fetch_price_history(token_id::String; interval="max", fidelity=1440)
+function fetch_price_history(token_id::String; interval="6m", fidelity=1440)
     params = Dict(
         "market"   => token_id,
         "interval" => interval,
