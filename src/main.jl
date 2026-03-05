@@ -10,7 +10,7 @@ include(joinpath(@__DIR__, "estimation/te.jl"))
 include(joinpath(@__DIR__, "network/graph.jl"))
 
 using .NodeConstruction, .TEEstimation, .NetworkViz
-using CSV, DataFrames, Dates
+using CSV, DataFrames, Dates, Plots
 
 println("=" ^ 60)
 println("PM-TE-Network: Phase 1 Pilot")
