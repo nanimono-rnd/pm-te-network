@@ -59,7 +59,7 @@ sort!(edges, by=x -> -x[3])
 
 get_question(token_id) = begin
     idx = findfirst(==(token_id), metadata.token_id)
-    idx === nothing ? token_id[1:8] * "..." : metadata.question[idx]
+    return idx === nothing ? token_id[1:min(8,length(token_id))] * "..." : metadata.question[idx]
 end
 
 println("\nTop edges by TE strength:")
