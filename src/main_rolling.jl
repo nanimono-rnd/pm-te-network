@@ -149,8 +149,12 @@ println("\n" * "=" ^ 70)
 println("SUMMARY")
 println("=" ^ 70)
 println("Total windows analyzed: $(length(window_results))")
-println("Average N: $(round(mean(summary_df.N), digits=1))")
-println("Average T/N: $(round(mean(summary_df.T_N_ratio), digits=1))")
-println("Average edges: $(round(mean(summary_df.n_edges), digits=1))")
-println("Average density: $(round(100*mean(summary_df.density), digits=1))%")
+if length(window_results) > 0
+    println("Average N: $(round(mean(summary_df.N), digits=1))")
+    println("Average T/N: $(round(mean(summary_df.T_N_ratio), digits=1))")
+    println("Average edges: $(round(mean(summary_df.n_edges), digits=1))")
+    println("Average density: $(round(100*mean(summary_df.density), digits=1))%")
+else
+    println("No windows successfully analyzed. Check data availability.")
+end
 println("=" ^ 70)
