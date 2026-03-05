@@ -32,45 +32,58 @@ end
 Fetch active markets from Polymarket. Returns a DataFrame with:
   condition_id, question, end_date_iso, active, volume, tokens (JSON string)
 """
-function fetch_markets(; limit=100, next_cursor="MA==")
+function fetch_markets(; limit=100, next_cursor="")
     rows = []
     cursor = next_cursor
+    n_pages = 0
     while true
-        params = Dict("next_cursor" => cursor, "limit" => limit)
+        params = Dict{String,Any}("limit" => limit)
+        !isempty(cursor) && (params["next_cursor"] = cursor)
         data = _get("/markets"; params=params)
 
-        for m in data["data"]
+        items = get(data, "data", [])
+        isempty(items) && break
+
+        for m in items
+            # volume may be missing or a numeric/string — handle both
+            vol_raw = get(m, "volume", nothing)
+            vol = if vol_raw === nothing
+                0.0
+            elseif vol_raw isa Number
+                Float64(vol_raw)
+            else
+                tryparse(Float64, string(vol_raw)) |> x -> isnothing(x) ? 0.0 : x
+            end
+
             push!(rows, (
-                condition_id = get(m, "condition_id", ""),
-                question     = get(m, "question", ""),
-                end_date     = get(m, "end_date_iso", ""),
-                active       = get(m, "active", false),
-                closed       = get(m, "closed", false),
-                volume       = parse(Float64, string(get(m, "volume", "0"))),
-                tokens       = JSON3.write(get(m, "tokens", [])),
+                condition_id     = string(get(m, "condition_id", "")),
+                question         = string(get(m, "question", "")),
+                end_date         = string(get(m, "end_date_iso", "")),
+                active           = get(m, "active", false) === true,
+                closed           = get(m, "closed", false) === true,
+                accepting_orders = get(m, "accepting_orders", false) === true,
+                volume           = vol,
+                tokens           = JSON3.write(get(m, "tokens", [])),
             ))
         end
 
-        cursor = get(data, "next_cursor", "LTE=")
-        # LTE= is Polymarket's "end of results" cursor
-        if cursor == "LTE=" || isempty(get(data, "data", []))
-            break
-        end
-        # Safety: stop after 10 pages
-        length(rows) >= limit * 10 && break
+        cursor = string(get(data, "next_cursor", ""))
+        n_pages += 1
+        (cursor == "LTE=" || isempty(cursor) || n_pages >= 20) && break
     end
 
     return DataFrame(rows)
 end
 
 """
-    fetch_active_markets(; min_volume=10000.0) → DataFrame
+    fetch_active_markets(; min_volume=0.0) → DataFrame
 
-Fetch all active, unclosed markets above a volume threshold.
+Fetch markets that are currently accepting orders (truly active).
+Volume filter is optional — set to 0 to see everything.
 """
-function fetch_active_markets(; min_volume=10000.0)
+function fetch_active_markets(; min_volume=0.0)
     df = fetch_markets(; limit=500)
-    return filter(r -> r.active && !r.closed && r.volume >= min_volume, df)
+    return filter(r -> r.accepting_orders && r.volume >= min_volume, df)
 end
 
 # ── price history ───────────────────────────────────────────────────────────────
