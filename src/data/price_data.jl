@@ -48,27 +48,12 @@ end
 """
     handle_staleness(df::DataFrame, stale_threshold_bars::Int=12) → DataFrame
 
-Mark stale prices as missing.
-If no trade for stale_threshold_bars consecutive bars, mark as NaN.
+Mark stale prices as missing (not used when volume data unavailable).
 """
 function handle_staleness(df::DataFrame, stale_threshold_bars::Int=12)
-    result = copy(df)
-    n = nrow(result)
-    
-    # Track consecutive zero-volume bars
-    zero_count = 0
-    for i in 1:n
-        if result.v[i] == 0.0
-            zero_count += 1
-            if zero_count >= stale_threshold_bars
-                result.p[i] = NaN
-            end
-        else
-            zero_count = 0
-        end
-    end
-    
-    return result
+    # CLOB API doesn't provide volume, so we can't detect staleness
+    # Just return the data as-is
+    return df
 end
 
 end # module

@@ -80,7 +80,7 @@ for (idx, window) in enumerate(windows[1:n_windows])
     for (token_id, df) in price_data
         active_days = count(row -> begin
             date = Date(unix2datetime(row.t))
-            window_start <= date <= window_end && row.v > 0
+            window_start <= date <= window_end && !isnan(row.p) && row.p > 0
         end, eachrow(df))
         
         if active_days >= config.min_active_days
