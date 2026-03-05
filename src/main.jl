@@ -57,14 +57,17 @@ edges = [(i, j, TE_matrix[i,j], P_matrix[i,j])
          for i in 1:N, j in 1:N if i != j && A[i,j] == 1]
 sort!(edges, by=x -> -x[3])
 
+get_question(token_id) = begin
+    idx = findfirst(==(token_id), metadata.token_id)
+    idx === nothing ? token_id[1:8] * "..." : metadata.question[idx]
+end
+
 println("\nTop edges by TE strength:")
 println("  j → i                                           TE      p-val")
 println("  " * "-"^65)
 for (i, j, te, pv) in first(edges, 15)
-    qi = metadata[findfirst(==(node_ids[i]), metadata.token_id), :question]
-    qj = metadata[findfirst(==(node_ids[j]), metadata.token_id), :question]
-    qi_s = qi[1:min(30,length(qi))]
-    qj_s = qj[1:min(30,length(qj))]
+    qi = get_question(node_ids[i]); qi_s = qi[1:min(30,length(qi))]
+    qj = get_question(node_ids[j]); qj_s = qj[1:min(30,length(qj))]
     println("  $qj_s → $qi_s   $(round(te, digits=4))   $(round(pv, digits=3))")
 end
 
@@ -74,9 +77,7 @@ println("T/N ratio: $(round(T/N, digits=1))")
 
 # ── Step 4: Visualize ─────────────────────────────────────────────────────────
 println("\nGenerating network plot...")
-labels = [NetworkViz.shorten_label(
-    metadata[findfirst(==(id), metadata.token_id), :question])
-    for id in node_ids]
+labels = [NetworkViz.shorten_label(get_question(id)) for id in node_ids]
 
 plt = NetworkViz.plot_te_network(A, TE_matrix, labels;
     title="Polymarket Macro Belief TE Network (Phase 1 Pilot)",
