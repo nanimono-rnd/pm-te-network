@@ -11,8 +11,8 @@ Runs the full pipeline:
   4. Print summary + save outputs
 """
 
-include("estimation/nodes.jl")
-include("estimation/te.jl")
+include(joinpath(@__DIR__, "estimation/nodes.jl"))
+include(joinpath(@__DIR__, "estimation/te.jl"))
 
 using .NodeConstruction, .TEEstimation
 using CSV, DataFrames, Dates
