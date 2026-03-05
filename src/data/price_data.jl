@@ -4,7 +4,7 @@ Price data fetching and staleness handling.
 
 module PriceData
 
-using DataFrames, Dates, Statistics
+using DataFrames, Dates, Statistics, JSON3
 
 """
     fetch_all_prices(markets::DataFrame, api_module; fidelity=240) → Dict
@@ -18,10 +18,17 @@ function fetch_all_prices(markets::DataFrame, api_module; fidelity=240)
     
     println("Fetching $(nrow(markets)) price histories...")
     for (i, row) in enumerate(eachrow(markets))
-        token_ids = api_module.token_ids_from_market(row)
+        # Extract token IDs from clob_token_ids column (JSON string)
+        clob_ids_str = row.clob_token_ids
+        token_ids = try
+            JSON3.read(clob_ids_str)
+        catch
+            []
+        end
+        
         isempty(token_ids) && continue
         
-        token_id = token_ids[1]
+        token_id = String(token_ids[1])
         hist = api_module.fetch_price_history(token_id; interval="max", fidelity=fidelity)
         
         if nrow(hist) >= 10
