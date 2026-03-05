@@ -1,0 +1,8 @@
+*.DS_Store
+data/raw/
+data/processed/
+.julia/
+Manifest.toml
+*.jl.cov
+*.jl.*.cov
+*.jl.mem

@@ -1,0 +1,17 @@
+name = "PMTENetwork"
+uuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+authors = ["Haotian Yang <sorayoung.42@outlook.com>"]
+version = "0.1.0"
+
+[deps]
+HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
+JSON3 = "0f8b85d8-7e73-4b8f-9b4b-2b5c9b7d3b2e"
+DataFrames = "a93c6f00-e57d-5684-b466-afe8fa294f38"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b4"
+GraphRecipes = "bd48cda9-67a9-57be-86fa-5b3c104eda73"
+StatsBase = "2913bbd2-ae8a-5f71-8cce-781a0be06908"
