@@ -100,7 +100,7 @@ Args:
 
 Returns DataFrame with columns: t (Unix timestamp), o, h, l, c (prices in [0,1])
 """
-function fetch_price_history(token_id::String; interval="all", fidelity=1440)
+function fetch_price_history(token_id::String; interval="max", fidelity=1440)
     params = Dict(
         "market"   => token_id,
         "interval" => interval,
@@ -108,14 +108,11 @@ function fetch_price_history(token_id::String; interval="all", fidelity=1440)
     )
     data = _get("/prices-history"; params=params)
     history = get(data, "history", [])
-    isempty(history) && return DataFrame(t=Int[], o=Float64[], h=Float64[], l=Float64[], c=Float64[])
+    isempty(history) && return DataFrame(t=Int[], p=Float64[])
 
     return DataFrame(
-        t = [h["t"] for h in history],
-        o = [h["o"] for h in history],
-        h = [h["h"] for h in history],
-        l = [h["l"] for h in history],
-        c = [h["c"] for h in history],
+        t = [Int(h["t"]) for h in history],
+        p = [Float64(h["p"]) for h in history],
     )
 end
 

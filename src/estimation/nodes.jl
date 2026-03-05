@@ -139,10 +139,10 @@ function build_node_matrix(; min_volume=50000.0, interval="all", fidelity=1440)
 
         token_id = token_ids[1]  # YES token
         try
-            hist = PolymarketAPI.fetch_price_history(token_id; interval=interval, fidelity=fidelity)
+            hist = PolymarketAPI.fetch_price_history(token_id; interval="max", fidelity=fidelity)
             nrow(hist) < 10 && continue  # Skip illiquid contracts with sparse data
 
-            series_dict[token_id] = (hist.t, hist.c)
+            series_dict[token_id] = (hist.t, hist.p)
             push!(meta_rows, (
                 token_id    = token_id,
                 question    = row.question,
