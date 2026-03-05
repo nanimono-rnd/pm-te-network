@@ -79,12 +79,12 @@ function fetch_macro_universe(; start_date="2024-06-01")
         end
         
         push!(rows, (
-            condition_id = string(get(m, :condition_id, "")),
+            condition_id = string(get(m, :conditionId, "")),
             question     = string(get(m, :question, "")),
-            end_date_iso = string(get(m, :end_date_iso, "")),
+            end_date_iso = string(get(m, :endDateIso, "")),
             closed       = get(m, :closed, false) === true,
             volume       = vol,
-            tokens       = JSON3.write(get(m, :tokens, [])),
+            clob_token_ids = string(get(m, :clobTokenIds, "[]")),
         ))
     end
     
@@ -131,11 +131,17 @@ end
 """
     token_ids_from_market(market_row) → Vector{String}
 
-Extract YES token IDs from a market DataFrame row.
+Extract token IDs from a Gamma API market.
+Gamma API uses 'clobTokenIds' field (JSON string array).
 """
 function token_ids_from_market(market_row)
-    tokens = JSON3.read(market_row.tokens)
-    return [String(t[:token_id]) for t in tokens if get(t, :outcome, "") == "Yes"]
+    clob_ids = get(market_row, :clobTokenIds, "[]")
+    if clob_ids isa String
+        ids = JSON3.read(clob_ids)
+        return [String(id) for id in ids]
+    else
+        return String[]
+    end
 end
 
 end # module
