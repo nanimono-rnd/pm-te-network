@@ -91,36 +91,37 @@ function fetch_macro_universe(; start_date="2024-06-01")
     return DataFrame(rows)
 end
 
-# ── price history ───────────────────────────────────────────────────────────────
+# ── price history (via CLOB API) ────────────────────────────────────────────────
+
+const CLOB_URL = "https://clob.polymarket.com"
 
 """
-    fetch_price_history(token_id::String; interval="4h", fidelity=240) → DataFrame
+    fetch_price_history(token_id::String; interval="max", fidelity=240) → DataFrame
 
-Fetch historical prices for a token.
+Fetch historical prices via CLOB API.
 
 Args:
-  token_id : Token ID from market's tokens field
-  interval : Time range ("1d", "1w", "1m", "3m", "6m", "1y", "max")
+  token_id : Token ID (from clobTokenIds)
+  interval : Time range ("max", "1d", "1w", "1m", "3m", "6m", "1y")
   fidelity : Bar width in minutes (240 = 4h, 1440 = daily)
 
-Returns DataFrame with: t (Unix timestamp), p (price), v (volume)
+Returns DataFrame with: t (Unix timestamp), p (price), v (volume=0)
 """
 function fetch_price_history(token_id::String; interval="max", fidelity=240)
-    params = Dict(
-        "market"   => token_id,
-        "interval" => interval,
-        "fidelity" => fidelity,
-    )
+    url = "$CLOB_URL/prices-history"
+    params = "?market=$token_id&interval=$interval&fidelity=$fidelity"
     
     try
-        data = _get("/prices-history"; params=params)
+        resp = HTTP.get(url * params, ["Accept" => "application/json"])
+        data = JSON3.read(String(resp.body))
         history = get(data, :history, [])
+        
         isempty(history) && return DataFrame(t=Int[], p=Float64[], v=Float64[])
         
         return DataFrame(
             t = [Int(h[:t]) for h in history],
             p = [Float64(h[:p]) for h in history],
-            v = [Float64(get(h, :v, 0.0)) for h in history],  # Volume may be missing
+            v = fill(0.0, length(history)),  # CLOB doesn't provide volume
         )
     catch e
         @warn "Failed to fetch price history for $token_id: $e"
