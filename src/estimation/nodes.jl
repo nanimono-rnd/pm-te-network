@@ -19,22 +19,28 @@ using .PolymarketAPI
 # ── keyword filter ─────────────────────────────────────────────────────────────
 
 const MACRO_KEYWORDS = [
-    # Fed / interest rates — must pair with "rate" or "fed" to avoid false positives
+    # Fed / interest rates — precise phrases only
     "federal reserve", "fomc", "fed rate", "fed cut", "fed hike", "fed raise",
-    "interest rate", "rate cut", "rate hike", "rate pause", "basis point", "bps",
-    # Inflation / macro data
-    "inflation", "cpi", "pce", "core inflation",
-    "gdp", "recession", "unemployment rate", "nonfarm payroll", "jobs report",
+    "fed decrease", "fed increase", "fed lower",
+    "interest rate", "rate cut", "rate hike", "rate pause", "rate change",
+    "basis point", "bps",
+    # Inflation / price level
+    "inflation", "cpi", "pce", "core inflation", "price level",
+    # Growth / recession / labor
+    "gdp", "recession", "unemployment rate", "nonfarm payroll", "payroll",
+    "jobs report", "labor market",
     # Treasury / yields
-    "10-year yield", "treasury yield", "yield curve",
+    "10-year yield", "treasury yield", "yield curve", "debt ceiling",
     # Equity indices
     "s&p 500", "spx", "nasdaq", "dow jones",
-    # Currency / dollar
+    # Currency
     "dxy", "dollar index",
     # Commodities used as macro signals
-    "wti", "brent crude",
-    # Trade / tariffs (macro scope)
+    "wti", "brent crude", "oil price",
+    # Trade / tariffs
     "tariff", "trade war", "trade deal",
+    # Fiscal / government
+    "government shutdown", "debt ceiling", "federal budget",
 ]
 
 function is_macro_contract(question::String)
@@ -112,18 +118,21 @@ end
 
 # ── main pipeline ──────────────────────────────────────────────────────────────
 
-"""
-    build_node_matrix(; min_volume=50000.0, interval="all", fidelity=1440)
+include(joinpath(@__DIR__, "collapse.jl"))
+using .EventCollapse
 
-Full pipeline: fetch → filter → price history → logit → align.
+"""
+    build_node_matrix(; min_volume=0.0, fidelity=1440)
+
+Full pipeline: fetch → filter → price history → logit → event-family collapse → align.
 
 Returns:
   - L        : N×T logit-price matrix
   - node_ids : Vector{String} of token IDs
-  - metadata : DataFrame with question, volume, condition_id per node
+  - metadata : DataFrame with question, volume, condition_id, family_size per node
   - grid     : Vector{Int} of Unix timestamps
 """
-function build_node_matrix(; min_volume=50000.0, interval="all", fidelity=1440)
+function build_node_matrix(; min_volume=0.0, fidelity=1440)
     println("Fetching active markets...")
     markets = PolymarketAPI.fetch_active_markets(; min_volume=min_volume)
     println("  Total active markets: $(nrow(markets))")
@@ -165,12 +174,26 @@ function build_node_matrix(; min_volume=50000.0, interval="all", fidelity=1440)
         sleep(0.2)  # Rate limiting
     end
 
-    println("\nBuilding N×T matrix...")
-    L, node_ids, grid = align_to_grid(series_dict)
+    # ── Event family collapse ───────────────────────────────────────────────────
+    raw_meta = DataFrame(meta_rows)
+    println("\nCollapsing event families...")
+    collapsed = EventCollapse.collapse_families(raw_meta)
+    println("  Before: $(nrow(raw_meta)) contracts → After: $(nrow(collapsed)) families")
+    for row in eachrow(collapsed)
+        if row.family_size > 1
+            println("  [merged x$(row.family_size)] $(row.question[1:min(60,length(row.question))])")
+        end
+    end
 
-    metadata = DataFrame(meta_rows)
-    # Keep only rows for nodes that made it into the matrix
-    metadata = filter(r -> r.token_id in node_ids, metadata)
+    # Filter series_dict to only keep representative tokens
+    keep_ids = Set(collapsed.token_id)
+    series_dict_collapsed = Dict(k => v for (k, v) in series_dict if k in keep_ids)
+
+    println("\nBuilding N×T matrix...")
+    L, node_ids, grid = align_to_grid(series_dict_collapsed)
+
+    # Match metadata to matrix order
+    metadata = filter(r -> r.token_id in node_ids, collapsed)
 
     N, T = size(L)
     println("Matrix: N=$N nodes × T=$T time steps")

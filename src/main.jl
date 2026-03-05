@@ -23,8 +23,7 @@ println("=" ^ 60)
 
 # ── Step 1: Build node matrix ──────────────────────────────────────────────────
 L, node_ids, metadata, grid = NodeConstruction.build_node_matrix(
-    min_volume = 0.0,        # 先不过滤，看看有多少合约
-    interval   = "all",
+    min_volume = 0.0,
     fidelity   = 1440,       # daily candles
 )
 
