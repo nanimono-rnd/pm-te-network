@@ -11,7 +11,7 @@ where:
 
 module TEEstimation
 
-using LinearAlgebra, Statistics, StatsBase
+using LinearAlgebra, Statistics, StatsBase, Random
 
 # ── OLS helper ─────────────────────────────────────────────────────────────────
 
