@@ -1,8 +1,32 @@
-*.DS_Store
-data/raw/
-data/processed/
-.julia/
-Manifest.toml
-*.jl.cov
+# pm-te-network/.gitignore
+
+# Test scripts
+test_*.py
+check_*.py
+debug_*.py
+explore_*.py
+filter_*.py
+categorize_*.py
+show_*.py
+find_*.py
+select_*.py
+fix_*.py
+quick_*.py
+step*.py
+aggregate_*.py
+convert_*.py
+count_*.py
+explain_*.py
+process_*.py
+
+# Temporary data
+data/raw/*
+data/processed/*
+*.json
+!data/composite_nodes.json
+
+# Julia
 *.jl.*.cov
+*.jl.cov
 *.jl.mem
+Manifest.toml
