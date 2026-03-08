@@ -13,7 +13,7 @@ using Statistics
 function load_data()
     markets = JSON3.read(read("data/all_series.json", String))
     candles = CSV.read("data/candlesticks_4h.csv", DataFrame)
-    candles.t = DateTime.(candles.t)
+    candles.datetime = DateTime.(candles.datetime)
     return markets, candles
 end
 
@@ -111,8 +111,8 @@ end
 
 # Compute composite price (time-to-resolution weighted)
 function compute_composite(members, candles)
-    timestamps = unique(candles.t) |> sort
-    composite = DataFrame(t=DateTime[], price=Float64[])
+    timestamps = unique(candles.datetime) |> sort
+    composite = DataFrame(datetime=DateTime[], price=Float64[])
     
     for t in timestamps
         weighted_sum = 0.0
@@ -125,10 +125,10 @@ function compute_composite(members, candles)
             isnothing(ticker) || isnothing(end_date) && continue
             
             # Get price at time t
-            rows = filter(r -> r.ticker == ticker && r.t == t, candles)
+            rows = filter(r -> r.ticker == ticker && r.datetime == t, candles)
             isempty(rows) && continue
             
-            price = rows[1, :c]
+            price = rows[1, :price]
             
             # Weight by 1/sqrt(days_to_resolution)
             days_to_res = (DateTime(end_date) - t).value ÷ (1000*60*60*24)
@@ -140,7 +140,7 @@ function compute_composite(members, candles)
             weight_sum += weight
         end
         
-        weight_sum > 0 && push!(composite, (t=t, price=weighted_sum/weight_sum))
+        weight_sum > 0 && push!(composite, (datetime=t, price=weighted_sum/weight_sum))
     end
     
     composite
@@ -188,7 +188,7 @@ function main()
     println("\nFinal composite nodes: $(length(composites))")
     
     # Save
-    output = Dict(name => [(t=string(r.t), price=r.price) for r in eachrow(df)] 
+    output = Dict(name => [(datetime=string(r.datetime), price=r.price) for r in eachrow(df)] 
                   for (name, df) in composites)
     
     open("data/composite_nodes.json", "w") do f
