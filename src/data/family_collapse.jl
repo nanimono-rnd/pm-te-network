@@ -27,38 +27,84 @@ function filter_macro(markets)
            markets)
 end
 
-# Identify families
+# Identify families (20-25 nodes, event-driven)
 function identify_families(macro_markets)
     families = Dict(
-        "fed_rate" => [],
-        "cpi_inflation" => [],
-        "gdp" => [],
-        "unemployment" => [],
+        # Economics (8-10 nodes)
+        "fed_cut" => [],
+        "fed_hike" => [],
+        "fed_rate_bracket" => [],
         "recession" => [],
-        "shutdown" => [],
-        "tariff" => []
+        "gdp_growth" => [],
+        "unemployment" => [],
+        "cpi_inflation" => [],
+        "debt_ceiling" => [],
+        
+        # Politics (6-8 nodes)
+        "pres_approval" => [],
+        "house_control" => [],
+        "senate_control" => [],
+        "gov_shutdown" => [],
+        "candidate_1" => [],
+        "candidate_2" => [],
+        
+        # Geopolitical (5-7 nodes)
+        "russia_ukraine" => [],
+        "china_taiwan" => [],
+        "us_china_tariff" => [],
+        "iran_mideast" => [],
+        "trade_deal" => []
     )
     
     for m in macro_markets
         ticker = lowercase(get(m, :ticker, ""))
         title = lowercase(get(m, :title, ""))
+        text = ticker * " " * title
         
-        if occursin(r"fed|fomc|rate", ticker * title)
-            push!(families["fed_rate"], m)
-        elseif occursin(r"cpi|inflation", ticker * title)
-            push!(families["cpi_inflation"], m)
-        elseif occursin("gdp", ticker * title)
-            push!(families["gdp"], m)
-        elseif occursin(r"unemployment|jobless|u3", ticker * title)
-            push!(families["unemployment"], m)
-        elseif occursin("recess", ticker * title)
+        # Economics
+        if occursin(r"rate cut|decrease|lower", text) && occursin(r"fed|fomc", text)
+            push!(families["fed_cut"], m)
+        elseif occursin(r"rate hike|increase|raise", text) && occursin(r"fed|fomc", text)
+            push!(families["fed_hike"], m)
+        elseif occursin(r"fed.*rate|fomc", text) && !occursin(r"cut|hike", text)
+            push!(families["fed_rate_bracket"], m)
+        elseif occursin("recess", text)
             push!(families["recession"], m)
-        elseif occursin("shutdown", ticker * title)
-            push!(families["shutdown"], m)
-        elseif occursin("tariff", ticker * title)
-            push!(families["tariff"], m)
+        elseif occursin("gdp", text)
+            push!(families["gdp_growth"], m)
+        elseif occursin(r"unemployment|jobless|u3", text)
+            push!(families["unemployment"], m)
+        elseif occursin(r"cpi|inflation", text)
+            push!(families["cpi_inflation"], m)
+        elseif occursin(r"debt ceiling|debt limit", text)
+            push!(families["debt_ceiling"], m)
+        
+        # Politics
+        elseif occursin(r"approval|rating", text) && occursin(r"president|biden|trump", text)
+            push!(families["pres_approval"], m)
+        elseif occursin(r"house|congress", text) && occursin(r"control|majority", text)
+            push!(families["house_control"], m)
+        elseif occursin("senate", text) && occursin(r"control|majority", text)
+            push!(families["senate_control"], m)
+        elseif occursin("shutdown", text)
+            push!(families["gov_shutdown"], m)
+        
+        # Geopolitical
+        elseif occursin(r"russia|ukraine|putin|zelensky", text)
+            push!(families["russia_ukraine"], m)
+        elseif occursin(r"china.*taiwan|taiwan.*china|strait", text)
+            push!(families["china_taiwan"], m)
+        elseif occursin("tariff", text) && occursin("china", text)
+            push!(families["us_china_tariff"], m)
+        elseif occursin(r"iran|israel|gaza|mideast|middle east", text)
+            push!(families["iran_mideast"], m)
+        elseif occursin(r"trade.*deal|trade.*agreement|fta", text)
+            push!(families["trade_deal"], m)
         end
     end
+    
+    # Remove empty families
+    filter!(p -> !isempty(p.second), families)
     
     families
 end
