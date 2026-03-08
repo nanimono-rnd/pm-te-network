@@ -170,11 +170,11 @@ function main()
     markets, candles = load_data()
     
     println("Filtering macro markets...")
-    macro = filter_macro(markets)
-    println("  → $(length(macro)) macro markets")
+    macro_markets = filter_macro(markets)
+    println("  → $(length(macro_markets)) macro markets")
     
     println("\nIdentifying families...")
-    families = identify_families(macro)
+    families = identify_families(macro_markets)
     for (name, members) in families
         println("  $name: $(length(members)) markets")
     end
