@@ -13,7 +13,8 @@ using Statistics
 function load_data()
     markets = JSON3.read(read("data/all_series.json", String))
     candles = CSV.read("data/candlesticks_4h.csv", DataFrame)
-    candles.datetime = DateTime.(candles.datetime)
+    # datetime is already String, parse it
+    candles.datetime = DateTime.(candles.datetime, dateformat"yyyy-mm-dd HH:MM:SS")
     return markets, candles
 end
 
