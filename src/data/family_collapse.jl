@@ -112,6 +112,15 @@ end
 
 # Compute composite price (time-to-resolution weighted)
 function compute_composite(members, candles)
+    # First, get end_date for each ticker from candlestick data
+    ticker_end_dates = Dict{String, DateTime}()
+    for ticker in unique(candles.ticker)
+        ticker_data = filter(r -> r.ticker == ticker, candles)
+        if !isempty(ticker_data)
+            ticker_end_dates[ticker] = maximum(ticker_data.datetime)
+        end
+    end
+    
     timestamps = unique(candles.datetime) |> sort
     composite = DataFrame(datetime=DateTime[], price=Float64[])
     
@@ -121,9 +130,11 @@ function compute_composite(members, candles)
         
         for m in members
             ticker = get(m, :ticker, nothing)
-            end_date = get(m, :end_date_iso, nothing)
+            isnothing(ticker) && continue
             
-            isnothing(ticker) || isnothing(end_date) && continue
+            # Get end_date from candlestick data
+            end_date = get(ticker_end_dates, ticker, nothing)
+            isnothing(end_date) && continue
             
             # Get price at time t
             rows = filter(r -> r.ticker == ticker && r.datetime == t, candles)
@@ -132,7 +143,7 @@ function compute_composite(members, candles)
             price = rows[1, :price]
             
             # Weight by 1/sqrt(days_to_resolution)
-            days_to_res = (DateTime(end_date) - t).value ÷ (1000*60*60*24)
+            days_to_res = Dates.value(end_date - t) ÷ (1000*60*60*24)
             days_to_res ≤ 7 && continue  # Skip last 7 days
             days_to_res ≤ 0 && continue
             
