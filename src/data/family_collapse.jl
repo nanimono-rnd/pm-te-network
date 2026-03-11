@@ -121,9 +121,13 @@ function compute_composite(members, candles)
         end
     end
     
+    println("  DEBUG: ticker_end_dates size = $(length(ticker_end_dates))")
+    println("  DEBUG: members tickers = ", [get(m, :ticker, "N/A") for m in members[1:min(3, length(members))]])
+    
     timestamps = unique(candles.datetime) |> sort
     composite = DataFrame(datetime=DateTime[], price=Float64[])
     
+    valid_count = 0
     for t in timestamps
         weighted_sum = 0.0
         weight_sum = 0.0
@@ -134,26 +138,36 @@ function compute_composite(members, candles)
             
             # Get end_date from candlestick data
             end_date = get(ticker_end_dates, ticker, nothing)
-            isnothing(end_date) && continue
+            if isnothing(end_date)
+                continue
+            end
             
             # Get price at time t
             rows = filter(r -> r.ticker == ticker && r.datetime == t, candles)
-            isempty(rows) && continue
+            if isempty(rows)
+                continue
+            end
             
             price = rows[1, :price]
             
             # Weight by 1/sqrt(days_to_resolution)
             days_to_res = Dates.value(end_date - t) ÷ (1000*60*60*24)
-            days_to_res ≤ 7 && continue  # Skip last 7 days
-            days_to_res ≤ 0 && continue
+            if days_to_res ≤ 7 || days_to_res ≤ 0
+                continue
+            end
             
             weight = 1.0 / sqrt(max(days_to_res, 1))
             weighted_sum += weight * price
             weight_sum += weight
+            valid_count += 1
         end
         
-        weight_sum > 0 && push!(composite, (datetime=t, price=weighted_sum/weight_sum))
+        if weight_sum > 0
+            push!(composite, (datetime=t, price=weighted_sum/weight_sum))
+        end
     end
+    
+    println("  DEBUG: valid_count = $valid_count, composite rows = $(nrow(composite))")
     
     composite
 end

@@ -21,7 +21,13 @@ using LinearAlgebra, Statistics, StatsBase, Random
 Simple OLS: Y = X * β + ε
 """
 function ols(Y::Vector{Float64}, X::Matrix{Float64})
-    β = (X'X) \ (X'Y)
+    XtX = X'X
+    # Use pseudo-inverse if singular (constant series / collinear lags)
+    β = if cond(XtX) > 1e12
+        pinv(XtX) * (X'Y)
+    else
+        XtX \ (X'Y)
+    end
     ε = Y - X * β
     σ² = var(ε)
     return β, ε, σ²
@@ -77,28 +83,57 @@ end
 # ── permutation test ───────────────────────────────────────────────────────────
 
 """
-    permutation_test(xi, xj, p; n_perms=500) → (te_obs, p_value)
+    permutation_test(xi, xj, p; n_perms=500, rng) → (te_obs, p_value)
 
 Test H0: TE(j→i) = 0 using block permutation of xj.
-Block size = p to preserve local temporal structure.
+Block size = max(p, 5) to preserve local temporal structure.
+Thread-safe: pass an explicit `rng` per thread/task.
+Optimized: restricted model cached (constant across permutations).
 """
 function permutation_test(xi::Vector{Float64}, xj::Vector{Float64}, p::Int;
-                           n_perms::Int=500)
+                           n_perms::Int=500, rng::AbstractRNG=Random.default_rng())
     te_obs = pairwise_te(xi, xj, p)
 
-    # Block permutation of xj
+    # Pre-compute restricted model (constant across all permutations)
+    Xi = make_lags(xi, p)
+    yi = xi[p+1:end]
+    _, _, σ²_restricted = ols(yi, Xi)
+
+    # Block permutation setup
     T = length(xj)
     block_size = max(p, 5)
     n_blocks = ceil(Int, T / block_size)
+    block_ranges = [(((b-1)*block_size+1), min(b*block_size, T)) for b in 1:n_blocks]
 
-    null_dist = Float64[]
+    # Pre-allocate buffers (zero-allocation hot loop)
+    xj_perm = Vector{Float64}(undef, T)
+    perm_order = Vector{Int}(undef, n_blocks)
+
+    count_ge = 0
     for _ in 1:n_perms
-        block_order = shuffle(1:n_blocks)
-        xj_perm = vcat([xj[((b-1)*block_size+1):min(b*block_size, T)] for b in block_order]...)[1:T]
-        push!(null_dist, pairwise_te(xi, xj_perm, p))
+        # In-place block permutation
+        randperm!(rng, perm_order)
+        pos = 1
+        for idx in 1:n_blocks
+            b = perm_order[idx]
+            s, e = block_ranges[b]
+            len = min(e - s + 1, T - pos + 1)
+            len <= 0 && break
+            copyto!(xj_perm, pos, xj, s, len)
+            pos += len
+        end
+
+        # Only compute unrestricted model (restricted is cached)
+        Xij = hcat(Xi, make_lags(xj_perm, p)[:, 1:p])
+        _, _, σ²_unrestricted = ols(yi, Xij)
+        te_perm = max(0.5 * log(σ²_restricted / σ²_unrestricted), 0.0)
+
+        if te_perm >= te_obs
+            count_ge += 1
+        end
     end
 
-    p_val = mean(null_dist .>= te_obs)
+    p_val = count_ge / n_perms
     return te_obs, p_val
 end
 
