@@ -21,7 +21,7 @@ using CSV, DataFrames, Dates, Statistics, LinearAlgebra, Random
 # ═══════════════════════════════════════════════════════════════════════════════
 
 const VAR_LAG   = 1
-const N_PERMS   = 200
+const N_PERMS   = 500
 const LOGIT_EPS = 0.01
 const MIN_ACTIVE = 30
 const STEP_DAYS = 1
@@ -183,14 +183,12 @@ function run_te_with_window(L, families, timestamps, has_obs, window_days; alpha
         family_obs_days[i] = obs
     end
 
+    # Phase 1: Pre-generate all valid windows
     date_set = sort(unique(dates))
     w_start = date_set[1]
     w_end_max = date_set[end]
 
-    n_windows = 0
-    total_edges = 0
-    densities = Float64[]
-
+    tasks = []
     while w_start + Day(window_days) <= w_end_max
         w_end = w_start + Day(window_days)
 
@@ -200,24 +198,29 @@ function run_te_with_window(L, families, timestamps, has_obs, window_days; alpha
             active_days >= MIN_ACTIVE && push!(active_families, i)
         end
 
-        if length(active_families) < 3
-            w_start += Day(STEP_DAYS)
-            continue
+        if length(active_families) >= 3
+            col_mask = [w_start <= dates[j] <= w_end for j in 1:T_total]
+            L_w = L[active_families, col_mask]
+            valid_cols = [all(!isnan, L_w[:, j]) for j in 1:size(L_w, 2)]
+            L_w = L_w[:, valid_cols]
+            N_w, T_w = size(L_w)
+            if T_w >= 30 && N_w >= 3
+                push!(tasks, L_w)
+            end
         end
+        w_start += Day(STEP_DAYS)
+    end
 
-        col_mask = [w_start <= dates[j] <= w_end for j in 1:T_total]
-        L_w = L[active_families, col_mask]
-        valid_cols = [all(!isnan, L_w[:, j]) for j in 1:size(L_w, 2)]
-        L_w = L_w[:, valid_cols]
+    n_tasks = length(tasks)
+
+    # Phase 2: Process all windows in parallel
+    edge_counts = Vector{Int}(undef, n_tasks)
+    density_vals = Vector{Float64}(undef, n_tasks)
+
+    Threads.@threads for k in 1:n_tasks
+        L_w = tasks[k]
         N_w, T_w = size(L_w)
-
-        if T_w < 30 || N_w < 3
-            w_start += Day(STEP_DAYS)
-            continue
-        end
-
-        # TE estimation
-        rng = MersenneTwister(42 + n_windows)
+        rng = MersenneTwister(42 + k)
         n_edges = 0
         for i in 1:N_w, j in 1:N_w
             i == j && continue
@@ -227,16 +230,13 @@ function run_te_with_window(L, families, timestamps, has_obs, window_days; alpha
                 p_val < alpha && (n_edges += 1)
             catch; end
         end
-
-        density = n_edges / (N_w * (N_w - 1))
-        push!(densities, density)
-        total_edges += n_edges
-        n_windows += 1
-        w_start += Day(STEP_DAYS)
+        edge_counts[k] = n_edges
+        density_vals[k] = n_edges / (N_w * (N_w - 1))
     end
 
-    avg_density = isempty(densities) ? 0.0 : mean(densities)
-    return (n_windows=n_windows, total_edges=total_edges,
+    total_edges = sum(edge_counts)
+    avg_density = isempty(density_vals) ? 0.0 : mean(density_vals)
+    return (n_windows=n_tasks, total_edges=total_edges,
             avg_density=round(100*avg_density, digits=2))
 end
 
@@ -337,10 +337,48 @@ function exp5d_half_sample(ws::DataFrame, edges::DataFrame)
         corr = cor(Float64.(p1_vec), Float64.(p2_vec))
         println("  Persistence rank correlation: $(round(corr, digits=3))")
     end
+
+    # Composition-adjusted: only compare edges between nodes active in BOTH halves
+    w1 = filter(r -> r.start_date in first_half_dates, ws)
+    w2 = filter(r -> r.start_date in second_half_dates, ws)
+    nodes1 = Set{String}()
+    nodes2 = Set{String}()
+    for r in eachrow(w1)
+        for n in split(r.nodes, ";")
+            push!(nodes1, n)
+        end
+    end
+    for r in eachrow(w2)
+        for n in split(r.nodes, ";")
+            push!(nodes2, n)
+        end
+    end
+    common_nodes = intersect(nodes1, nodes2)
+    println("\n  Composition-adjusted ($(length(common_nodes)) shared nodes):")
+
+    adj_pairs1 = Set(filter(p -> p[1] in common_nodes && p[2] in common_nodes, collect(pairs1)))
+    adj_pairs2 = Set(filter(p -> p[1] in common_nodes && p[2] in common_nodes, collect(pairs2)))
+    adj_both = intersect(adj_pairs1, adj_pairs2)
+    adj_stability = length(adj_both) / max(length(union(adj_pairs1, adj_pairs2)), 1)
+
+    println("  Adjusted first half: $(length(adj_pairs1)) edges")
+    println("  Adjusted second half: $(length(adj_pairs2)) edges")
+    println("  Adjusted overlap: $(length(adj_both))")
+    println("  Adjusted Jaccard: $(round(adj_stability, digits=3))")
+
+    # Adjusted persistence correlation
+    adj_all = union(adj_pairs1, adj_pairs2)
+    if length(adj_all) > 2
+        ap1 = [get(pers1, p, 0) for p in adj_all]
+        ap2 = [get(pers2, p, 0) for p in adj_all]
+        adj_corr = cor(Float64.(ap1), Float64.(ap2))
+        println("  Adjusted rank correlation: $(round(adj_corr, digits=3))")
+    end
     flush(stdout)
 
     return (n_first=length(pairs1), n_second=length(pairs2),
-            n_overlap=length(both), jaccard=round(stability, digits=4))
+            n_overlap=length(both), jaccard=round(stability, digits=4),
+            adj_jaccard=round(adj_stability, digits=4))
 end
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -360,8 +398,8 @@ function main()
     edges.start_date = Date.(edges.start_date)
     println("Loaded: $(nrow(ws)) windows, $(nrow(edges)) edges"); flush(stdout)
 
-    # 5a: Placebo
-    placebo = exp5a_placebo(ws, edges; n_placebo=100)
+    # 5a: Placebo (1000 iterations for power)
+    placebo = exp5a_placebo(ws, edges; n_placebo=1000)
 
     # 5c: α sensitivity (run before 5b since 5b is slow)
     alpha_results = exp5c_alpha_sensitivity(edges)

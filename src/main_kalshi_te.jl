@@ -29,7 +29,7 @@ const STEP_DAYS     = 1
 const MIN_ACTIVE    = 30    # min distinct active DAYS per node in window
 const MIN_N_PRIMARY = 8     # N≥8 = primary analysis regime
 const VAR_LAG       = 1     # fixed VAR(1)
-const N_PERMS       = 200
+const N_PERMS       = 500
 const ALPHA         = 0.01
 const LOGIT_EPS     = 0.01
 
