@@ -31,7 +31,7 @@
 % ══════════════════════════════════════════════════════════════════════════════
 
 \begin{abstract}
-\noindent How do market beliefs about macroeconomic events influence each other? We construct a directed network of 19 macro prediction market composites on Kalshi---spanning monetary policy, inflation, fiscal risk, trade, and political outcomes---and use scheduled announcements (FOMC, CPI, NFP) as natural experiments to separate genuine cross-category information flow from differential-speed reactions to common shocks. Three independent identification strategies converge: event-window decomposition classifies edges by their behavior around macro announcements, FOMC event-studies isolate anticipatory versus reactive price dynamics, and lead-lag asymmetry tests distinguish directed flow from symmetric co-movement. Of 176 unique directed edges, 62\% reflect genuine information channels; only 3.4\% are common-shock artifacts---an order of magnitude below the $>$80\% contamination rate documented in equity networks \citep{yang2026te}. The identified network reveals three structural features invisible without identification: (i)~FOMC internal dynamics---not rate decisions themselves---are the primary information originator across all macro categories; (ii)~tariff expectations function as an information relay, absorbing monetary and fiscal signals and retransmitting them to political contract categories; (iii)~government shutdown risk is the dominant source of fiscal information, whose effect on growth expectations is fully mediated by the tariff relay---revealing tariffs as the central transmission hub of the macro belief network. These findings demonstrate that prediction markets provide a setting where directed financial network edges have clean economic interpretation---and where the identification problem that plagues equity network estimation can be solved.
+\noindent How do market beliefs about macroeconomic events influence each other? We construct a directed network of 19 macro prediction market composites on Kalshi---spanning monetary policy, inflation, fiscal risk, trade, and political outcomes---and use scheduled announcements (FOMC, CPI, NFP) as natural experiments to separate genuine cross-category information flow from differential-speed reactions to common shocks. Three independent identification strategies converge: event-window decomposition classifies edges by their behavior around macro announcements, FOMC event-studies isolate anticipatory versus reactive price dynamics, and lead-lag asymmetry tests distinguish directed flow from symmetric co-movement. Of 176 unique directed edges, 62\% reflect genuine information channels; only 3.4\% are common-shock artifacts---an order of magnitude below the $>$80\% contamination rate documented in equity networks \citep{yang2026te}. The identified network reveals three structural features invisible without identification: (i)~FOMC internal dynamics---not rate decisions themselves---are the primary information originator across all macro categories; (ii)~tariff expectations function as an information relay, absorbing monetary and fiscal signals and retransmitting them to growth, inflation, and political contract categories; (iii)~government shutdown risk is the dominant source of fiscal information, whose effect on growth expectations is fully mediated by the tariff relay---revealing tariffs as the central transmission hub of the macro belief network. These findings demonstrate that prediction markets provide a setting where directed financial network edges have clean economic interpretation---and where the identification problem that plagues equity network estimation can be solved.
 
 \medskip
 \noindent\textit{JEL Codes:} G14, G17, E44, C32, D83\\
@@ -69,7 +69,7 @@ The remainder of the paper is organized as follows. Section~\ref{sec:data} descr
 
 \subsection{Kalshi Prediction Markets and Composite Construction}
 
-Kalshi is a CFTC-regulated event contract exchange where each contract pays \$1 if a specified event occurs and \$0 otherwise. Contract prices, quoted in cents from 0 to 100, are directly interpretable as market-implied event probabilities. We collect 4-hour candlestick data for 2,911 contracts with price activity across 4,003 macro event markets, yielding 149,425 price observations spanning August 2024 to February 2026.
+Kalshi is a CFTC-regulated event contract exchange where each contract pays \$1 if a specified event occurs and \$0 otherwise. Contract prices, quoted in cents from 0 to 100, are directly interpretable as market-implied event probabilities. We collect 4-hour candlestick data for 2,911 contracts with price activity across 4,003 macro event markets, yielding 149,425 price observations spanning August 2024 to February 2026. After composite construction, timestamps are aligned to the union of all constituent contract timestamps, yielding approximately sub-daily resolution (8,656 unique timestamps over 540 days).
 
 Multiple contracts reference the same macroeconomic concept at different time horizons and strike levels. Following the FAVAR logic of \citet{bernanke2005measuring}, where individual series are treated as noisy measurements of latent macro factors, we collapse contracts into composite nodes via time-to-resolution weighted averages. Specifically, for each macro family $f$ at each 4-hour timestamp $t$, the composite price is:
 \begin{equation}
@@ -163,11 +163,16 @@ Table~\ref{tab:classification} reports the results. Only 6 of 176 edges (3.4\%) 
 Classification & Count & Share & Avg Pers. & Definition \\
 \midrule
 Genuine & 79 & 44.9\% & 36.2 & Significant in both regimes \\
-Quiet-only & 51 & 29.0\% & 11.8 & Significant only in low-event windows \\
+Genuine-symmetric & 13 & 7.4\% & 39.2 & Genuine with $|\text{AR}| < 0.1$ \\
 Event-amplified & 9 & 5.1\% & 21.3 & Both regimes; stronger during events \\
+Hierarchical & 8 & 4.5\% & 46.4 & Within-concept pairs (e.g., core/headline CPI) \\
+\cmidrule{2-4}
+\textit{Subtotal: survive} & \textit{109} & \textit{62.0\%} & & \\
+\midrule
+Quiet-only & 51 & 29.0\% & 11.8 & Significant only in low-event windows \\
 Common shock & 6 & 3.4\% & 3.5 & Significant only in high-event windows \\
 Noise & 9 & 5.1\% & 1.0 & $\leq 1$ window appearance \\
-Other & 22 & 12.5\% & --- & Hierarchical, symmetric, or insufficient \\
+Unclassified & 1 & 0.6\% & --- & Insufficient data \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -184,16 +189,16 @@ Our second strategy examines edge behavior around Federal Reserve announcements.
 \small
 \begin{tabular}{llcccc}
 \toprule
-& Edge & Pers. & Rate (FOMC) & Rate (base) & Ratio \\
+& Edge & Pers. & Rate (near) & Rate (base) & Ratio \\
 \midrule
-\multicolumn{6}{l}{\textit{Panel A: Information Leaders (pre-FOMC)}} \\
+\multicolumn{6}{l}{\textit{Panel A: Information Leaders (pre-FOMC rate shown)}} \\
 & gov\_shutdown $\to$ headline\_cpi & 91 & 0.371 & 0.161 & 2.30 \\
 & global\_tariffs $\to$ fed\_leadership & 46 & 0.236 & 0.078 & 3.03 \\
 & fed\_rate\_path $\to$ potus\_approval & 44 & 0.214 & 0.069 & 3.10 \\
 & global\_tariffs $\to$ fed\_rate\_level & 41 & 0.191 & 0.074 & 2.58 \\
 & gdp $\to$ china\_tariff\_rate & 31 & 0.169 & 0.032 & 5.22 \\
 \midrule
-\multicolumn{6}{l}{\textit{Panel B: Common-Shock Responders (post-FOMC)}} \\
+\multicolumn{6}{l}{\textit{Panel B: Common-Shock Responders (post-FOMC rate shown)}} \\
 & gov\_shutdown $\to$ potus\_approval & 43 & 0.216 & 0.060 & 3.60 \\
 & core\_cpi\_pce $\to$ gov\_shutdown & 37 & 0.216 & 0.055 & 3.93 \\
 & debt\_funding $\to$ congress\_narr. & 29 & 0.159 & 0.042 & 3.79 \\
@@ -225,7 +230,7 @@ The three strategies exploit different sources of variation---announcement timin
 
 \subsection{The Identification Dividend}
 
-Of 176 unique directed edges, 109 (62\%) survive identification as genuine information channels. Only 6 edges (3.4\%) are common-shock artifacts. The 3.4\% rate should be compared to the $>$80\% spurious rate documented in equity networks by \citet{yang2026te}. Prediction markets achieve an order-of-magnitude reduction in contamination---not because the identification framework is more powerful, but because the setting is fundamentally cleaner.
+Of 176 unique directed edges, 109 (62\%) survive identification as genuine information channels---comprising 79 genuine, 9 event-amplified, 13 genuine-symmetric, and 8 hierarchical edges (Table~\ref{tab:classification}). Only 6 edges (3.4\%) are common-shock artifacts. The 3.4\% rate should be compared to the $>$80\% spurious rate documented in equity networks by \citet{yang2026te}. Prediction markets achieve an order-of-magnitude reduction in contamination---not because the identification framework is more powerful, but because the setting is fundamentally cleaner.
 
 This comparison frames prediction markets as the \textit{control group} for financial network estimation. The equity network is the treatment group where common-shock contamination is pervasive but undiagnosable. Prediction markets show what a clean network looks like, providing the benchmark against which equity contamination should be measured.
 
@@ -257,12 +262,14 @@ $\vdots$ & & & & \\
 15 & nasdaq\_targets & $-0.46$ & 13 & $-2$ \\
 16 & headline\_cpi & $-0.37$ & 16 & $0$ \\
 \bottomrule
+\multicolumn{5}{l}{\footnotesize Full ranking of all 16 nodes with edges in the identified network. Three of 19 composites}\\
+\multicolumn{5}{l}{\footnotesize (fed\_gov\_confidence, jobless\_claims, potus\_social) lack sufficient edges for ranking.}
 \end{tabular}
 \end{table}
 
 The most dramatic shift is \texttt{congress\_investigations}, which drops from \#1 in the raw network to \#8 after identification---its edges were noise and common-shock artifacts. Without identification, one would conclude that congressional investigations drive macro beliefs---an implausible finding.
 
-The clean hierarchy reveals \texttt{fomc\_dynamics}---contracts referencing FOMC deliberations, dissent patterns, and communication strategy---as the top information originator, ranking \textit{above} the rate decision itself. Markets extract more directional information from \textit{how} the Fed deliberates than from \textit{what} it decides. This extends the central bank communication literature \citep{gurkaynak2005actions,hansen2016shocking} by showing that FOMC ``extra'' information is the primary driver of cross-market belief dynamics.
+The clean hierarchy reveals that markets extract more directional information from \textit{how} the Federal Reserve deliberates than from \textit{what} it decides. \texttt{fomc\_dynamics}---contracts referencing FOMC deliberations, dissent patterns, and communication strategy---ranks as the top information originator, \textit{above} the rate decision itself. This extends the central bank communication literature \citep{gurkaynak2005actions,hansen2016shocking} by showing that FOMC ``extra'' information is the primary driver of cross-market belief dynamics.
 
 \subsection{Finding (ii): Tariffs as Information Relay}
 
@@ -320,7 +327,7 @@ Test & Result & Interpretation \\
 Window length (45/60/90d) & Density: 8.0\% / 13.6\% / 23.4\% & Monotonic; no anomaly \\
 $\alpha$ threshold (0.001--0.10) & Edges: 148 / 161 / 176 & Proper gradation \\
 Half-sample stability & Adj.\ Jaccard: 0.57 & Moderate--good \\
-Placebo (1,000 calendars) & $p = 0.187$ & See discussion \\
+Placebo (1,000 calendars) & $p = 0.187$ & Limited power; triangulation is primary \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -347,7 +354,7 @@ Conditional TE (top 3 hubs) & 48/88 genuine edges survive & 54.5\% survive stric
 
 \textbf{Significance threshold.} With 500 permutations, p-values have 0.002 resolution. At $\alpha=0.001$, 148 edges are retained; at $\alpha=0.01$, 176. The 28-edge difference does not affect main findings, which are driven by high-persistence edges with $p \ll 0.001$.
 
-\textbf{Overlapping windows.} Persistence counts in our rolling-window design reflect overlapping 60-day windows (step = 1 day), inflating absolute counts. Re-estimating with non-overlapping windows (step = 60 days, yielding 7 independent windows), the persistence rank correlation with overlapping estimates is $\rho = 0.767$: top edges under overlapping estimation remain top edges under non-overlapping estimation.\footnote{Persistence counts reflect overlapping windows; non-overlapping estimation (step = 60d, 7 windows) preserves rank order ($\rho = 0.767$).}
+\textbf{Overlapping windows.} Persistence counts in our rolling-window design reflect overlapping 60-day windows (step = 1 day), inflating absolute counts. Re-estimating with non-overlapping windows (step = 60 days, yielding 7 independent windows), the persistence rank correlation with overlapping estimates is $\rho = 0.767$: top edges under overlapping estimation remain top edges under non-overlapping estimation.
 
 \textbf{Expanded event calendar.} Our baseline uses three canonical announcement series (FOMC, CPI, NFP). Expanding to include 12 tariff announcements and 8 budget deadlines reclassifies 51 of 176 edges, with genuine edges falling from 109 to 67 and quiet-only rising from 51 to 92. This demonstrates the framework's sensitivity to the event set rather than a methodological limitation: including more scheduled events mechanically increases the fraction of windows classified as high-event, reclassifying some edges from genuine to quiet-only. The three headline findings are robust to this expansion.
 
@@ -367,7 +374,7 @@ We develop the first identification framework for directed information flow in f
 
 The identification framework is general. Any financial network in which directed relationships are estimated faces the same identification problem: observed edges may reflect common shocks rather than information flow. Our framework applies wherever the researcher has access to exogenous information shocks with known timing: earnings announcements for equity networks, sovereign rating reviews for CDS networks, central bank decisions for cross-border networks. The specific findings will differ; the identification methodology is permanent infrastructure.
 
-Three limitations merit discussion. First, our sample covers 18 months of Kalshi data during a period of unusual macroeconomic activity; whether specific structural findings generalize is an empirical question. Second, Kalshi markets have lower liquidity than major equity or futures markets, potentially attenuating genuine information flow. Third, our estimation uses linear predictive models; nonlinear transmission may be present but undetected. Future work includes external validation through ETF bridge nodes and neural estimation methods for capturing nonlinear information flow.
+Three limitations merit discussion. First, our sample period---characterized by tariff escalation, government shutdown negotiations, and Federal Reserve policy uncertainty---provides a rich environment for identification but may not represent a typical macro regime; whether specific structural findings generalize beyond this period is an empirical question. Second, Kalshi markets have lower liquidity than major equity or futures markets, potentially attenuating genuine information flow. Third, our estimation uses linear predictive models; nonlinear transmission may be present but undetected. Future work includes external validation through ETF bridge nodes and neural estimation methods for capturing nonlinear information flow.
 
 % ══════════════════════════════════════════════════════════════════════════════
 % REFERENCES
