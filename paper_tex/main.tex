@@ -114,7 +114,7 @@ Category & Node & Contracts & Active Period \\
 
 We estimate directed predictive relationships between composite nodes using the following approach. For each pair of nodes $(i,j)$, we test whether $j$'s price history contains predictive information for $i$'s future price, beyond what $i$'s own history provides. This is operationalized as a comparison of two autoregressive models: a restricted model using only $i$'s own lagged values, and an unrestricted model incorporating both $i$'s and $j$'s lagged values. A statistically significant reduction in prediction error in the unrestricted model indicates a directed predictive relationship from $j$ to $i$. Statistical significance is assessed via a block permutation test with 500 shuffles at the $\alpha=0.01$ level. Implementation details, including the formal specification, are provided in Appendix~\ref{app:estimation}.
 
-Estimation proceeds over rolling windows of 60 calendar days at 4-hour resolution, advancing by 1 day. Within each window, a node is included only if it has at least 30 days of active trading. The 4-hour resolution yields approximately 1,100--1,400 observations per window, giving a ratio of observations to nodes ($T/N$) of approximately 129 in the primary analysis regime---well above the reliability threshold of $T/N \geq 20$ established in \citet{yang2026te}.
+Estimation proceeds over rolling windows of 60 calendar days, advancing by 1 day. Composite prices are observed at the native timestamp resolution of the underlying contracts (approximately sub-daily, with 8,656 unique timestamps over 540 days). Within each window, a node is included only if it has at least 30 days of active trading. This yields approximately 1,100--1,400 observations per window, giving a ratio of observations to nodes ($T/N$) of approximately 129 in the primary analysis regime---well above the reliability threshold of $T/N \geq 20$ established in \citet{yang2026te}.
 
 \subsection{The Raw Network}
 
@@ -211,7 +211,7 @@ Our third strategy measures directionality. For each node pair $(A,B)$, we compu
 \begin{equation}
 \text{AR}(A,B) = \frac{\text{TE}(A \to B) - \text{TE}(B \to A)}{\text{TE}(A \to B) + \text{TE}(B \to A)}
 \end{equation}
-where TE values are persistence-weighted sums. High $|\text{AR}|$ indicates one-directional flow (genuine); low $|\text{AR}|$ indicates symmetric co-movement (common factor). The mean $|\text{AR}|$ across all 176 edges is 0.57. Edges classified as genuine exhibit higher asymmetry ($|\text{AR}|>0.5$ for 58\%) than common-shock edges, cross-validating the event-window classification.
+where TE denotes Transfer Entropy as defined in Appendix~\ref{app:estimation}, and values are persistence-weighted sums. High $|\text{AR}|$ indicates one-directional flow (genuine); low $|\text{AR}|$ indicates symmetric co-movement (common factor). The mean $|\text{AR}|$ across all 176 edges is 0.57. Edges classified as genuine exhibit higher asymmetry ($|\text{AR}|>0.5$ for 58\%) than common-shock edges, cross-validating the event-window classification.
 
 \subsection{Triangulation}
 
@@ -363,7 +363,7 @@ Conditional TE (top 3 hubs) & 48/88 genuine edges survive & 54.5\% survive stric
 
 \section{Conclusion}\label{sec:conclusion}
 
-We develop the first identification framework for directed information flow in financial networks and apply it to macro prediction markets on Kalshi. Using scheduled macroeconomic announcements as natural experiments and deploying three converging identification strategies, we decompose 176 unique directed edges into genuine information channels (62\%), quiet-period flow (29\%), common-shock artifacts (3.4\%), and noise. The identified network reveals that FOMC internal dynamics are the primary information originator, tariff expectations function as a cross-category relay, and government shutdown risk dominates the fiscal-to-growth channel.
+We develop the first identification framework for directed information flow in financial networks and apply it to macro prediction markets on Kalshi. Using scheduled macroeconomic announcements as natural experiments and deploying three converging identification strategies, we decompose 176 unique directed edges into genuine information channels (62\%), quiet-period flow (29\%), common-shock artifacts (3.4\%), and noise. The identified network reveals that FOMC internal dynamics are the primary information originator, tariff expectations function as a cross-category relay, and government shutdown risk dominates fiscal information origination, with its growth effect fully mediated by the tariff relay.
 
 The identification framework is general. Any financial network in which directed relationships are estimated faces the same identification problem: observed edges may reflect common shocks rather than information flow. Our framework applies wherever the researcher has access to exogenous information shocks with known timing: earnings announcements for equity networks, sovereign rating reviews for CDS networks, central bank decisions for cross-border networks. The specific findings will differ; the identification methodology is permanent infrastructure.
 
