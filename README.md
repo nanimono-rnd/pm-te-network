@@ -1,6 +1,8 @@
 # pm-te-network
 
-Transfer Entropy networks across Kalshi prediction market contracts. Recovers directed information flow structure among macro belief composites using VAR-based TE with permutation testing.
+Directed information flow networks in macro prediction markets. Identifies genuine belief propagation channels among 19 Kalshi composite nodes using scheduled announcements (FOMC, CPI, NFP) as natural experiments.
+
+**Paper:** *Identifying Directed Belief Propagation in Macro Prediction Markets* (Yang, 2026)
 
 ## Requirements
 
@@ -11,33 +13,38 @@ Transfer Entropy networks across Kalshi prediction market contracts. Recovers di
 
 ```
 src/
-├── main_kalshi_te.jl              # Main pipeline (multithreaded)
+├── main_kalshi_te.jl              # Main pipeline (multithreaded, 32 threads)
 ├── viz_te.jl                      # 3-panel visualization
 ├── data/
 │   ├── macro_filter.jl            # SERIES_FAMILY_MAP (ticker → family)
 │   └── family_collapse.jl         # Composite node construction
 ├── estimation/
-│   ├── te.jl                      # VAR(p) TE + permutation test
+│   ├── te.jl                      # VAR(p) TE + permutation test (thread-safe)
 │   ├── nodes.jl                   # Logit transform, grid alignment
 │   └── rolling_window.jl          # Window config structs
 ├── identification/
 │   ├── experiments.jl             # Exp 1,3,4: edge classification
+│   ├── exp2_fomc_study.jl         # Exp 2: FOMC event-study
+│   ├── exp5_robustness.jl         # Exp 5: placebo, window sensitivity
 │   └── springrank.jl              # Information hierarchy
+├── robustness/
+│   ├── fdr_correction.jl          # Benjamini-Hochberg FDR
+│   ├── nonoverlap_windows.jl      # Non-overlapping window check
+│   ├── expanded_events.jl         # Expanded event calendar (+tariff/budget)
+│   └── conditional_te.jl          # Conditional TE (top 3 confounders)
 └── network/
     └── graph.jl                   # Network construction helpers
 ```
 
 ## Replicate Results
 
-### 1. Run TE Pipeline
+### 1. TE Pipeline
 
 ```bash
 julia -t auto src/main_kalshi_te.jl
 ```
 
-Uses all available CPU threads. On a 16-core Ryzen 9: ~3.5 minutes for 402 rolling windows.
-
-**Config** (edit constants at top of `main_kalshi_te.jl`):
+32 threads, ~10 min on Ryzen 9 8945HX. Produces 402 windows, 4,665 edges, 176 unique pairs.
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -45,60 +52,64 @@ Uses all available CPU threads. On a 16-core Ryzen 9: ~3.5 minutes for 402 rolli
 | `STEP_DAYS` | 1 | Window step size |
 | `MIN_ACTIVE` | 30 | Min active days per node per window |
 | `VAR_LAG` | 1 | VAR lag order |
-| `N_PERMS` | 200 | Permutation test shuffles |
+| `N_PERMS` | 500 | Permutation test shuffles |
 | `ALPHA` | 0.01 | Significance level |
 
-**Output** → `data/results/`:
-- `window_summary.csv` — per-window metrics (N, T, density, asymmetry)
-- `edge_list.csv` — all significant directed edges with TE values
-- `composites.csv` — 4h composite node prices
-- `adjacency/` — per-window adjacency matrices
+### 2. Identification Experiments
 
-### 2. Generate Visualizations
+```bash
+julia src/identification/experiments.jl        # Exp 1,3,4: edge classification
+julia src/identification/exp2_fomc_study.jl    # Exp 2: FOMC event-study
+julia -t auto src/identification/exp5_robustness.jl  # Exp 5: robustness
+julia src/identification/springrank.jl         # SpringRank hierarchy
+```
+
+### 3. Robustness Suite
+
+```bash
+julia src/robustness/fdr_correction.jl                # BH FDR correction
+julia -t auto src/robustness/nonoverlap_windows.jl    # Non-overlapping windows
+julia src/robustness/expanded_events.jl               # +tariff/budget events
+julia -t auto src/robustness/conditional_te.jl        # Conditional TE
+```
+
+### 4. Visualizations
 
 ```bash
 julia src/viz_te.jl
 ```
 
-**Output** → `data/results/figures/`:
-- `density_timeseries.png` — network density over time with FOMC/CPI annotations
-- `network_triptych.png` — quiet / normal / peak network snapshots
-- `hub_evolution.png` — top hub out-degree evolution
+Produces `data/results/figures/`: density time series, network triptych, hub evolution.
 
-### 3. Run Identification Experiments
+## Key Results
 
-```bash
-julia src/identification/experiments.jl
-```
+- **19** composite nodes from 4,003 Kalshi markets
+- **176** unique directed edges, **62%** survive identification as genuine
+- **3.4%** common-shock artifacts (vs >80% in equity networks)
+- **148/176** edges survive Benjamini-Hochberg FDR at q=0.01
+- **48/88** genuine edges survive conditional TE (top 3 confounders)
 
-Classifies each directed edge as: `genuine`, `common_shock`, `event_amplified`, `quiet_only`, or `noise` using event-window decomposition, lead-lag asymmetry, and hierarchical edge analysis.
+### Three Findings
 
-**Output**: `data/results/classified_edges.csv`
-
-### 4. Compute SpringRank Hierarchy
-
-```bash
-julia src/identification/springrank.jl
-```
-
-Compresses directed TE graph into 1D information hierarchy (De Bacco et al. 2018).
-
-**Output**:
-- `data/results/springrank_scores.csv` — node rankings (all vs clean network)
-- `data/results/springrank_monthly.csv` — time-varying rankings
+1. **FOMC dynamics > rate decisions.** Markets extract more directional information from *how* the Fed deliberates than from *what* it decides.
+2. **Tariffs as central relay.** Tariff expectations absorb monetary/fiscal signals and retransmit to growth, inflation, and political categories.
+3. **Shutdown → tariffs → GDP.** Government shutdown risk is the dominant fiscal information source, but its growth effect is fully mediated by the tariff relay.
 
 ## Method
 
-1. **Family collapse**: 2,900+ Kalshi contracts → 19 macro composite nodes via time-to-resolution weighted averages
-2. **Logit transform**: prices (0-100 cents) → log-odds space with ε=0.01 clipping
-3. **Rolling windows**: 60-day windows at 4h resolution (T≈1,100-1,400 bars per window)
+1. **Family collapse**: 2,900+ contracts → 19 composites (FAVAR-style weighted averages)
+2. **Logit transform**: prices → log-odds with ε=0.01 clipping
+3. **Rolling windows**: 60-day, sub-daily resolution (T≈1,100–1,400 per window, T/N≈129)
 4. **Pairwise TE**: `TE(j→i) = ½ log(σ²_restricted / σ²_unrestricted)` from VAR(1)
-5. **Permutation test**: block permutation (block_size=5), 200 shuffles, α=0.01
-6. **Identification**: event-window decomposition separates genuine information flow from common-shock differential response
+5. **Permutation test**: block permutation (block_size=5), 500 shuffles, α=0.01
+6. **Identification**: event-window decomposition + FOMC event-study + lead-lag asymmetry (triangulation)
+7. **Conditional TE**: controls for top 3 network hubs; mediation analysis
 
 ## References
 
-- Schreiber (2000) — Transfer Entropy definition
 - Ottaviani & Sorensen (2015, AER) — differential underreaction mechanism
-- De Bacco et al. (2018) — SpringRank
+- Angrist & Pischke (2014) — quasi-experimental identification framework
 - Bernanke, Boivin & Eliasz (2005, QJE) — FAVAR factor aggregation
+- De Bacco et al. (2018) — SpringRank information hierarchy
+- Schreiber (2000) — Transfer Entropy
+- Yang (2026, SSRN 6282818) — TE network reliability audit
